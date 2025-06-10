@@ -2,6 +2,7 @@ import { asyncHandler } from "../utils/asynchandler.js";
 import { ApiError } from '../utils/ApiError.js'
 import { ApiResponse } from '../utils/ApiResponse.js'
 import { User } from '../models/users.models.js'
+import { v2 as cloudinary } from "cloudinary";
 import { uploadOnCloudinary } from "../utils/uploads.cloudinary.utils.js";
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
@@ -20,6 +21,44 @@ const generateAccessAndRefreshToken = async (userId) => {
     } catch (e) {
         throw new ApiError(500, e)
     }
+}
+
+//Delete old avatar from cloudinary
+const deleteOldAvatar = async function (userId) {
+
+    const user = await User.findById(userId)
+    let url = user.avatar
+    let arr = url.split("/")
+    let public_id = arr[arr.length - 1].split(".")[0]
+
+    cloudinary.uploader
+    .destroy(public_id, 
+        {
+            resource_type: 'image',
+            invalidate: true,
+            type: 'authenticated'
+        }
+    )
+    .then(result => console.log(result));
+}
+
+//Delete old coverImage from cloudinary
+const deleteCoverImage = async function (userId) {
+
+    const user = await User.findById(userId)
+    let url = user.coverImage
+    let arr = url.split("/")
+    let public_id = arr[arr.length - 1].split(".")[0]
+
+    cloudinary.uploader
+    .destroy(public_id, 
+        {
+            resource_type: 'image',
+            invalidate: true,
+            type: 'authenticated'
+        }
+    )
+    .then(result => console.log(result));
 }
 
 const registerUser = asyncHandler( async (req, res) => {
@@ -161,7 +200,7 @@ const logoutUser = asyncHandler( async (req, res) => {
     .clearCookie("accessToken", options)
     .clearCookie("refreshToken", options)
     .json(
-        new ApiResponse(200, {}, "User logged out")
+        new ApiResponse(200, { user: req.user}, "User logged out")
     )
 })
 
@@ -281,13 +320,16 @@ const updateUserAvatar = asyncHandler( async(req, res) => {
     if (!avatarLocalPath) {
         throw new ApiError(400, "Avatar file is missing")
     }
-
+    
+    //Delete the image from cloudinary first
+    deleteOldAvatar(req.user?._id)
+    
     const avatar = await uploadOnCloudinary(avatarLocalPath)
-
+    
     if (!avatar.url) {
         throw new ApiError(400, "Error while uploading avatar")
     }
-
+    
     const user = await User.findByIdAndUpdate(
         req.user?._id,
         {
@@ -299,7 +341,7 @@ const updateUserAvatar = asyncHandler( async(req, res) => {
             new: true
         }
     ).select("-password")
-
+    
     return res
     .status(200)
     .json(
@@ -318,6 +360,9 @@ const updateUserCoverImage = asyncHandler( async(req, res) => {
         throw new ApiError(400, "Cover Image is missing")
     }
     
+    //Delete the image from cloudinary first
+    deleteCoverImage(req.user?._id)
+
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
     
     if (!coverImage.url) {
