@@ -7,7 +7,6 @@ import { uploadOnCloudinary } from "../utils/uploads.cloudinary.utils.js";
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import mongoose from "mongoose";
-import { pipeline } from "stream";
 
 const generateAccessAndRefreshToken = async (userId) => {
     try {
@@ -29,19 +28,20 @@ const generateAccessAndRefreshToken = async (userId) => {
 const deleteOldAvatar = async function (userId) {
 
     const user = await User.findById(userId)
+    // console.log("User: ", user)
     let url = user.avatar
     let arr = url.split("/")
     let public_id = arr[arr.length - 1].split(".")[0]
-
+    
     cloudinary.uploader
     .destroy(public_id, 
         {
             resource_type: 'image',
-            invalidate: true,
-            type: 'authenticated'
+            invalidate: true
         }
     )
-    .then(result => console.log(result));
+    .then(result => console.log(result))
+    .catch(e => console.log("Error: ", e));
 }
 
 //Delete old coverImage from cloudinary
@@ -56,8 +56,7 @@ const deleteCoverImage = async function (userId) {
     .destroy(public_id, 
         {
             resource_type: 'image',
-            invalidate: true,
-            type: 'authenticated'
+            invalidate: true
         }
     )
     .then(result => console.log(result));
@@ -395,7 +394,8 @@ const updateUserCoverImage = asyncHandler( async(req, res) => {
 })
 
 const getUserChannelProfile = asyncHandler( async(req, res) => {
-    const {userName} = req.params
+    
+    const {userName} = req.query
 
     if (!userName?.trim()) {
         throw new ApiError(400, "Username is missing")
