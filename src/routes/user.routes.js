@@ -41,8 +41,8 @@ router.route("/update-account-details").patch(verifyJWT, updateAccountDetails)//
 router.route("/update-user-avatar").patch(verifyJWT, upload.single("avatar"), updateUserAvatar)//
 router.route("/update-user-cover-image").patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage)//
 router.route("/user").get(verifyJWT, getUserChannelProfile)//
-router.route("/refresh-token").post(refreshAccessToken)
-router.route("/change-current-password").post(changeCurrentPassword)
-router.route("/history").get(verifyJWT, getWatchHistory)
+router.route("/refresh-token").post(refreshAccessToken)//
+router.route("/change-current-password").post(verifyJWT, changeCurrentPassword)//
+router.route("/history").get(verifyJWT, getWatchHistory)//
 
 export default router
