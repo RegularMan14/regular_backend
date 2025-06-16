@@ -19,12 +19,14 @@ const videoSchema = new mongoose.Schema({
         required: true
     },
     duration: {
-        type: Number,      //Cloud URL
-        required: true
+        type: Number,      //Cloud URL  ?? <--What the fuck? What's that supposed to mean?
+        required: true,
+        default: 0
     },
     views: {
-        type: Numeber,      
-        required: true
+        type: Number,      
+        required: true,
+        default: 0
     },
     isPublished: {
         type: Boolean,      

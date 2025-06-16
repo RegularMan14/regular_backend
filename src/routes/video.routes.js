@@ -27,6 +27,8 @@ router.route('/').get(getAllVideos).post(
     publishAVideo
 )
 
+router.route('/publish').post(publishAVideo)
+
 router.route("/:videoId").get(getVideoById).delete(deleteVideo).patch(upload.single("thumbnail"), updateVideo)
 
 router.route("/toggle/publish/:videoId").patch(togglePublishStatus)
