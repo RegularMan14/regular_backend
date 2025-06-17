@@ -13,7 +13,24 @@ import { upload } from "../middlewares/multer.middlewares.js";
 const router = Router();
 router.use(verifyJWT);
 
-router.route('/').get(getAllVideos).post(
+// Don't know its purpose as of yet. Will update the routes later on
+// router.route('/').get(getAllVideos).post(
+//     upload.fields([
+//         {
+//             name: "videoFile",
+//             maxCount: 1,
+//         },
+//         {
+//             name: "thumbnail",
+//             maxCount: 1,
+//         },
+//     ]),
+//     publishAVideo
+// )
+
+router.route('/').get(getAllVideos)
+
+router.route('/publish').post(
     upload.fields([
         {
             name: "videoFile",
@@ -27,10 +44,19 @@ router.route('/').get(getAllVideos).post(
     publishAVideo
 )
 
-router.route('/publish').post(publishAVideo)
+router.route("/get/:videoId").get(getVideoById)
+router.route("/delete/:videoId").delete(deleteVideo)
 
-router.route("/:videoId").get(getVideoById).delete(deleteVideo).patch(upload.single("thumbnail"), updateVideo)
+router.route("/:videoId")
+.get(getVideoById)
+.delete(deleteVideo)
+.patch(
+    upload.single(
+        "thumbnail"
+    ), updateVideo
+)
 
-router.route("/toggle/publish/:videoId").patch(togglePublishStatus)
+router.route("/toggle/publish/:videoId")
+.patch(togglePublishStatus)
 
 export default router
