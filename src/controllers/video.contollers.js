@@ -7,18 +7,58 @@ import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asynchandler.js"
 import fs from "fs"
 
-
-
 const getAllVideos = asyncHandler( async (req, res) => {
     // get all videos based on query, sort, and pagination
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
+
+    // Take the userId and query the database
+    // Search for all the videos with the same userId, and match the query provided, select them, group them
+    // Store the results inside an object, and return it in response
+    const Page = await Video.aggregate([
+        {
+            "$search": {
+                "index": "page",
+                "text": {
+                    "path": "title",
+                    "query": query || "",
+                },
+                "sort": { "released" : ( sortType === "asc" ) ? 1 : -1 }
+            }
+        },
+        {
+            "$limit": Number(limit)
+        },
+        {
+            "$project": {
+                "_id": 0,
+                "title": 1,
+                "description": 1,
+                "thumbnail": 1,
+                "videoFile": 1,
+                "duration": 1,
+                "views": 1,
+                "owner": 1,
+                "isPublished": 1,
+                "paginationToken" : { "$meta" : "searchSequenceToken" },
+                "score": { "$meta": "searchScore" }
+            }
+        }
+    ])
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                Page
+            },
+            "All videos fetched successfully"
+        )
+    )
+
 })
 
 const publishAVideo = asyncHandler ( async (req, res) => {
     // get video, upload to cloudinary, create video
-
-    console.log(req.user)
-    console.log(req.files)
 
     const { title, description } = req.body
 
@@ -94,33 +134,94 @@ const publishAVideo = asyncHandler ( async (req, res) => {
 
 const getVideoById = asyncHandler ( async (req, res) => {
     // get video by id
-    const { videoId } = req.params
-    const video = await Video.findById(
-        new mongoose
-        .Types
-        .ObjectId(videoId)
-    )
-    
-    if (!video) {
-        throw new ApiError(404, "Video not found")
+    try {
+        const { videoId } = req.params
+        const video = await Video.findById(
+            new mongoose
+            .Types
+            .ObjectId(videoId)
+        )
+        
+        if (!video) {
+            throw new ApiError(404, "Video not found")
+        }
+        
+        return res
+        .json(
+            new ApiResponse(
+                200,
+            {
+                video
+            },
+        "Video fetched successfully")
+        )
+    } catch (error) {
+        throw new ApiError(error.statusCode, error.message)
     }
-
-    return res
-    .json(
-        new ApiResponse(
-            200,
-        {
-            video
-        },
-    "Video fetched successfully")
-    )
 })
 
 const updateVideo = asyncHandler ( async (req, res) => {
     // update video details like title, description, thumbnail
-    const { videoId } = req.params
+    try {
+        const { videoId } = req.params
+        const { title, description } = req.body
+        const newThumbnailPath = req.file?.path
+        
+        const video = await Video.findById(
+            new mongoose
+            .Types
+            .ObjectId(videoId)
+        )
+        
+        
+        if (!video) {
+            throw new ApiError(404, "Video not found")
+        }
 
-    
+        const oldThumbnailUrl = video.thumbnail
+        let arr = oldThumbnailUrl.split('/')
+        let old_thumbnail_public_id = arr[arr.length - 1].split('.')[0]
+
+        cloudinary
+        .uploader
+        .destroy(old_thumbnail_public_id, 
+            {
+                resource_type: 'image',
+                invalidate: true
+            }
+        )
+        .then(result => console.log(result))
+        .catch(e => console.log("Error: ", e))
+
+        const newThumbnail = await uploadOnCloudinary(newThumbnailPath)
+
+        video.title = title
+        video.description = description
+        video.thumbnail = newThumbnail.url
+        video.save()
+        
+
+        const updatedVideo = await Video.findById(video._id)
+        .select(
+            "-videoFile -thumbnail"
+        )
+
+        const videoUpdated = updatedVideo.toJSON()
+        
+        return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                {
+                    videoUpdated
+                },
+                "Video updated successfully"
+            )
+        )
+    } catch (error) {
+        throw new ApiError(error.statusCode, error.message || "Error in updating the video")
+    }    
 })
 
 const deleteVideo = asyncHandler ( async (req, res) => {
@@ -164,7 +265,8 @@ const deleteVideo = asyncHandler ( async (req, res) => {
     return res
     .status(200)
     .json(
-        new ApiResponse(200,
+        new ApiResponse(
+            200,
             {},
             "Video deleted successfully"
         )

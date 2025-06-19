@@ -29,7 +29,7 @@ router.use(verifyJWT);
 // )
 
 router.route('/').get(getAllVideos)
-
+// Router for getAllVideos not finished
 router.route('/publish').post(
     upload.fields([
         {
@@ -43,19 +43,13 @@ router.route('/publish').post(
     ]),
     publishAVideo
 )
-
 router.route("/get/:videoId").get(getVideoById)
 router.route("/delete/:videoId").delete(deleteVideo)
-
-router.route("/:videoId")
-.get(getVideoById)
-.delete(deleteVideo)
-.patch(
+router.route("/update/:videoId").patch(
     upload.single(
         "thumbnail"
     ), updateVideo
 )
-
 router.route("/toggle/publish/:videoId")
 .patch(togglePublishStatus)
 
