@@ -9,51 +9,87 @@ import fs from "fs"
 
 const getAllVideos = asyncHandler( async (req, res) => {
     // get all videos based on query, sort, and pagination
-    const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
-
-    // Take the userId and query the database
-    // Search for all the videos with the same userId, and match the query provided, select them, group them
-    // Store the results inside an object, and return it in response
-    const Page = await Video.aggregate([
-        {
-            "$search": {
-                "index": "page",
-                "text": {
-                    "path": "title",
-                    "query": query || "",
-                },
-                "sort": { "released" : ( sortType === "asc" ) ? 1 : -1 }
-            }
-        },
-        {
-            "$limit": Number(limit)
-        },
-        {
-            "$project": {
-                "_id": 0,
-                "title": 1,
-                "description": 1,
-                "thumbnail": 1,
-                "videoFile": 1,
-                "duration": 1,
-                "views": 1,
-                "owner": 1,
-                "isPublished": 1,
-                "paginationToken" : { "$meta" : "searchSequenceToken" },
-                "score": { "$meta": "searchScore" }
-            }
-        }
-    ])
-
-    return res.status(200).json(
-        new ApiResponse(
-            200,
+    try {
+        const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
+    
+        // Take the userId and query the database
+        // Search for all the videos with the same userId, and match the query provided, select them, group them
+        // Store the results inside an object, and return it in response
+        // console.log(page, limit)
+        // const Page = await Video.aggregate([
+        //     {
+        //         $search: {
+        //             index: "ix",
+        //             compound: {
+        //                 must: [
+        //                     query ? {
+        //                         text: {
+        //                             query,
+        //                             path: "title"
+        //                         }
+        //                     }: null,
+        //                     userId ? {
+        //                         equals: {
+        //                             path: "owner",
+        //                             value: new mongoose.Types.ObjectId(userId)
+        //                         }
+        //                     }: null
+        //                 ].filter(Boolean)
+        //             },
+        //            sort: {
+        //             [sortBy || "createdAt"]: sortType === "asc" ? 1 : -1
+        //         }
+        //         }
+        //     },
+        //     {
+        //         $skip: (parseInt(page)-1) * parseInt(limit)
+        //     },
+        //     {
+        //         $limit: parseInt(limit)
+        //     },
+        //     {
+        //         $project: {
+        //             _id: 0,
+        //             title: 1,
+        //             description: 1,
+        //             thumbnail: 1,
+        //             videoFile: 1,
+        //             duration: 1,
+        //             views: 1,
+        //             owner: 1,
+        //             isPublished: 1,
+        //             paginationToken : { $meta : "searchSequenceToken" },
+        //             score: { $meta: "searchScore" }
+        //         }
+        //     }
+        // ])
+        
+        const Page = await Video.find(
             {
-                Page
-            },
-            "All videos fetched successfully"
-        )
+            owner: new mongoose.Types.ObjectId(userId),
+            title: query
+        }
     )
+
+        if (Page.length === 0) {
+            throw new ApiError(
+                404,
+                "Not found"
+            )
+        }
+    
+        return res.status(200).json(
+            new ApiResponse(
+                200,
+                {
+                    Page
+                },
+                "All videos fetched successfully"
+            )
+        )
+    } catch (error) {
+        throw new ApiError(error.statusCode, error.message)
+    }
 
 })
 
@@ -275,6 +311,26 @@ const deleteVideo = asyncHandler ( async (req, res) => {
 
 const togglePublishStatus = asyncHandler ( async (req, res) => {
     const { videoId } = req.params
+
+    const video = await Video.findById(new mongoose.Types.ObjectId(videoId))
+    
+    if (!video) {
+        throw new ApiError(500, "Could not delete the video")
+    }
+
+    video.isPublished = false
+    await video.save()
+
+    return res.json(
+        new ApiResponse(
+            200,
+            {
+                toggleStatus: video.isPublished
+            },
+            "toggle status changed successfully"
+        )
+    )
+
 })
 
 export {
