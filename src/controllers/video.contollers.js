@@ -292,7 +292,7 @@ const togglePublishStatus = asyncHandler ( async (req, res) => {
     }
 
     video.isPublished = false
-    await video.save()
+    video.save()
 
     return res.json(
         new ApiResponse(
