@@ -12,64 +12,37 @@ const getAllVideos = asyncHandler( async (req, res) => {
     try {
         const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
     
-        // Take the userId and query the database
-        // Search for all the videos with the same userId, and match the query provided, select them, group them
-        // Store the results inside an object, and return it in response
-        // console.log(page, limit)
-        // const Page = await Video.aggregate([
-        //     {
-        //         $search: {
-        //             index: "ix",
-        //             compound: {
-        //                 must: [
-        //                     query ? {
-        //                         text: {
-        //                             query,
-        //                             path: "title"
-        //                         }
-        //                     }: null,
-        //                     userId ? {
-        //                         equals: {
-        //                             path: "owner",
-        //                             value: new mongoose.Types.ObjectId(userId)
-        //                         }
-        //                     }: null
-        //                 ].filter(Boolean)
-        //             },
-        //            sort: {
-        //             [sortBy || "createdAt"]: sortType === "asc" ? 1 : -1
-        //         }
-        //         }
-        //     },
-        //     {
-        //         $skip: (parseInt(page)-1) * parseInt(limit)
-        //     },
-        //     {
-        //         $limit: parseInt(limit)
-        //     },
-        //     {
-        //         $project: {
-        //             _id: 0,
-        //             title: 1,
-        //             description: 1,
-        //             thumbnail: 1,
-        //             videoFile: 1,
-        //             duration: 1,
-        //             views: 1,
-        //             owner: 1,
-        //             isPublished: 1,
-        //             paginationToken : { $meta : "searchSequenceToken" },
-        //             score: { $meta: "searchScore" }
-        //         }
-        //     }
-        // ])
-        
-        const Page = await Video.find(
-            {
-            owner: new mongoose.Types.ObjectId(userId),
-            title: query
+        const filter = {}
+        const sort = {}
+
+        if (!query) {
+            throw new ApiError(
+                500,
+                "Query field can't be empty"
+            )
+        } else {
+            filter.title = {
+                $regex: query,
+                $options: 'i'
+            }
+            if (userId) {
+                filter.owner = new mongoose.Types.ObjectId(userId)
+            }
         }
-    )
+        
+        if (sortBy) {
+            sort[sortBy] = (sortType === "asc") ? 1 : -1
+        }
+
+        // pagination
+        let skip = (page - 1) * limit
+        
+        const Page = await Video
+        .find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .select("-_id")
 
         if (Page.length === 0) {
             throw new ApiError(
