@@ -226,12 +226,95 @@ const removeVideoFromPlaylist = asyncHandler( async (req, res) => {
 const deletePlaylist = asyncHandler( async (req, res) => {
     const {playlistId} = req.query
     // delete a playlist
+
+    try {
+        if (!playlistId) {
+            throw new ApiError(
+                500,
+                "playlistId can't be empty"
+            )
+        }
+    
+        const playlist = await Playlist.findByIdAndDelete(
+            new mongoose.Types.ObjectId(playlistId)
+        )
+    
+    
+        if (!playlist) {
+            throw new ApiError(
+                404,
+                "Could n't find the playlist"
+            )
+        }
+    
+        return res
+        .status (200)
+        .json(
+            new ApiResponse(
+                200,
+                {
+                    playlist
+                },
+                "deleted playlist successfully"
+            )
+        )
+    } catch (error) {
+        throw new ApiError(
+            error.statusCode,
+            error.message
+        )
+    }
+
 })
 
 const updatePlaylist = asyncHandler( async (req, res) => {
     const {playlistId} = req.query
     const {name, description} = req.body
     // update playlist
+
+    try {
+        if (!playlistId) {
+            throw new ApiError(
+                500,
+                "playlistId can't be empty"
+            )
+        }
+    
+        if (!name && !description) {
+            throw new ApiError(
+                500,
+                "Atleast one field (name, or description) must be provided"
+            )
+        }
+    
+        let playlist = await Playlist.findByIdAndUpdate(
+            new mongoose.Types.ObjectId(playlistId),
+            {
+                name: name,
+                description: description
+            },
+            {
+                new: true
+            }
+        )
+    
+        return res
+        .status (200)
+        .json (
+            new ApiResponse (
+                200,
+                {
+                    playlist
+                },
+                "playlist updated successfully"
+            )
+        )
+    } catch (error) {
+        throw new ApiError(
+            error.statusCode,
+            error.message
+        )
+    }
 })
 
 export {
