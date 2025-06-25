@@ -124,11 +124,103 @@ const getPlaylistById = asyncHandler( async (req, res) => {
 const addVideoToPlaylist = asyncHandler( async (req, res) => {
     const {playlistId, videoId} = req.query
     // add video to a playlist
+
+    try {
+        if (!(playlistId && videoId)) {
+            throw new ApiError(
+                500,
+                "playlistId and/or videoId must not be empty"
+            )
+        }
+    
+        const playlist = await Playlist.findById(
+            new mongoose.Types.ObjectId(playlistId)
+        )
+    
+        if (!playlist) {
+            throw new ApiError(
+                500,
+                "Playlist not found"
+            )
+        }
+    
+        if (playlist.videos.includes(videoId)) {
+            throw new ApiError(
+                500,
+                "Video already present in the playlist"
+            )
+        } else {
+            playlist.videos.push(videoId)
+        }
+    
+        return res
+        .status (200)
+        .json (
+            new ApiResponse(
+                200,
+                {
+                    playlist
+                },
+                "Video added successfully"
+            )
+        )
+    } catch (error) {
+        throw new ApiError(
+            error.statusCode,
+            error.message
+        )
+    }
 })
 
 const removeVideoFromPlaylist = asyncHandler( async (req, res) => {
     const {playlistId, videoId} = req.query
     // remove a video from a playlist
+
+    try {
+        if (!(playlistId && videoId)) {
+            throw new ApiError(
+                500,
+                "playlistId and/or videoId can't be empty"
+            )
+        }
+    
+        let playlist = await Playlist.findById(
+            new mongoose.Types.ObjectId(playlistId)
+        )
+    
+        if (!playlist) {
+            throw new ApiError(
+                500,
+                "could not fetch the playlist"
+            )
+        }
+    
+        if (!playlist.videos.includes(videoId)) {
+            throw new ApiError(
+                404,
+                "Video not present in the playlist"
+            )
+        } else {
+            playlist.videos.splice(playlist.videos.indexOf(videoId), 1)
+        }
+    
+        return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                {
+                    playlist
+                },
+                "Video deleted from playlist successfully"
+            )
+        )
+    } catch (error) {
+        throw new ApiError(
+            error.statusCode,
+            error.message
+        )
+    }
 })
 
 const deletePlaylist = asyncHandler( async (req, res) => {
