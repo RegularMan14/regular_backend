@@ -1,8 +1,8 @@
 import mongoose from "mongoose"
-import { Playlist } from "../models/playlist.models"
-import { ApiError } from "../utils/ApiError"
-import { ApiResponse } from "../utils/ApiResponse"
-import { asyncHandler } from "../utils/asynchandler"
+import { Playlist } from "../models/playlist.models.js"
+import { ApiError } from "../utils/ApiError.js"
+import { ApiResponse } from "../utils/ApiResponse.js"
+import { asyncHandler } from "../utils/asynchandler.js"
 
 const createPlaylist = asyncHandler( async (req, res) => {
     const {name, description} = req.body
@@ -65,11 +65,13 @@ const getUserPlaylists = asyncHandler( async (req, res) => {
         return res
         .status(200)
         .json(
-            200,
-            {
-                playlists
-            },
-            "Playlists created by user returned successfully"
+            new ApiResponse(
+                200,
+                {
+                    playlists
+                },
+                "Playlists created by user returned successfully"
+                )
         )
     } catch (error) {
         return new ApiError(
@@ -151,8 +153,9 @@ const addVideoToPlaylist = asyncHandler( async (req, res) => {
             )
         } else {
             playlist.videos.push(videoId)
+            playlist.save()
         }
-    
+        
         return res
         .status (200)
         .json (
@@ -187,14 +190,14 @@ const removeVideoFromPlaylist = asyncHandler( async (req, res) => {
         let playlist = await Playlist.findById(
             new mongoose.Types.ObjectId(playlistId)
         )
-    
+        
         if (!playlist) {
             throw new ApiError(
                 500,
                 "could not fetch the playlist"
             )
         }
-    
+        
         if (!playlist.videos.includes(videoId)) {
             throw new ApiError(
                 404,
@@ -202,8 +205,9 @@ const removeVideoFromPlaylist = asyncHandler( async (req, res) => {
             )
         } else {
             playlist.videos.splice(playlist.videos.indexOf(videoId), 1)
+            playlist.save()
         }
-    
+        
         return res
         .status(200)
         .json(
