@@ -12,6 +12,6 @@ router.use(verifyJWT)
 
 router.route("/").post(createTweet)
 router.route("/user").get(getUserTweets)
-router.route("/").patch(updateTweet).deleteTweet(deleteTweet)
+router.route("/").patch(updateTweet).delete(deleteTweet)
 
 export default router
