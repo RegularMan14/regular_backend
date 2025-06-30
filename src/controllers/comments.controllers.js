@@ -6,8 +6,7 @@ import { asyncHandler } from "../utils/asynchandler.js"
 
 const getVideoComments = asyncHandler ( async (req, res) => {
     // get all comments for a video
-    const {videoId} = req.params
-    const {page = 1, limit = 10} = req.query
+    const {page, limit = 10, videoId} = req.query
 
     try {
         if (!videoId) {
@@ -19,7 +18,7 @@ const getVideoComments = asyncHandler ( async (req, res) => {
     
         //filter object
         const filter = {
-            owner: new mongoose.Types.ObjectId(videoId)
+            video: new mongoose.Types.ObjectId(videoId)
         }
         
         // Pagination
@@ -61,7 +60,8 @@ const getVideoComments = asyncHandler ( async (req, res) => {
 
 const addComment = asyncHandler ( async (req, res) => {
     // add a comment to a video
-    const {videoId} = req.params
+    const {videoId} = req.query
+    // console.log(videoId)
     const {content} = req.body
 
     try {
@@ -108,7 +108,7 @@ const addComment = asyncHandler ( async (req, res) => {
 
 const updateComment = asyncHandler ( async (req, res) => {
     // update a comment
-    const {commentId} = req.params
+    const {commentId} = req.query
     const {content} = req.body
     
     try {
@@ -159,7 +159,7 @@ const updateComment = asyncHandler ( async (req, res) => {
 
 const deleteComment = asyncHandler ( async (req, res) => {
     // delete a comment
-    const {commentId} = req.params
+    const {commentId} = req.query
     
     try {
         if (!commentId) {
