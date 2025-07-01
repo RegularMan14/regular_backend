@@ -19,7 +19,7 @@ const videoSchema = new mongoose.Schema({
         required: true
     },
     duration: {
-        type: Number,      //Cloud URL  ?? <--What the fuck? What's that supposed to mean?
+        type: Number,
         required: true,
         default: 0
     },
